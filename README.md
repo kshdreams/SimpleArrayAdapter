@@ -42,7 +42,19 @@ Simple RecyclerView Array Adapter for Android.
 - can set click listener when build adapter.
 
 
-##### 3. Select mode
+##### 3. Add item
+```java
+        adapter.addItem(Item.create("name", "description"));
+        adapter.addItem(Item.create("name2", "description2"));
+
+         List<Item> items = new ArrayList<>();
+         items.add(Item.create("name", "description"));
+         items.add(Item.create("name2", "description2"));
+         adapter.swapArray(items);
+```
+add item using ```addItem()``` or ```swapArray()```
+
+##### 4. Select mode
 ```java
         final SimpleArrayAdapter<Item> adapter = SimpleArrayAdapter.<Item>with(this)
                 .setLayoutResId(R.layout.list_item_2_line)
@@ -66,10 +78,10 @@ Simple RecyclerView Array Adapter for Android.
 ```
 
 
-##### 4. Using different type of view
+##### 5. Using different type of view
 ```java
         View header = View.inflate(this, R.layout.view_header, null);
-        mAdapter.addHeaderView(0, HEADER_TYPE_1, header);
+        adapter.addHeaderView(0, HEADER_TYPE_1, header);
 ```
 
 
