@@ -2,6 +2,27 @@
 
 Simple RecyclerView Array Adapter for Android.
 
+[![](https://jitpack.io/v/kshdreams/SimpleArrayAdapter.svg)](https://jitpack.io/#kshdreams/SimpleArrayAdapter)
+
+##### GETTING STARTED
+SimpleArrayAdapter releases are available via JitPack.
+```ruby
+// Project level build.gradle
+// ...
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+// ...
+
+// Module level build.gradle
+dependencies {
+    // Replace version with release version, e.g. 1.0.0-alpha, -SNAPSHOT
+    implementation "com.github.kshdreams:SimpleArrayAdapter:[VERSION]"
+}
+```
+
+
+
 #### How To Use
 ##### 1. Define your item class
 ```java
