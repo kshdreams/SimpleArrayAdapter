@@ -61,7 +61,8 @@ public class MainActivity extends AppCompatActivity {
                 .withItemClickListener(new AbsArrayAdapter.OnItemClickListener() {
                     @Override
                     public void onItemClick(View view, int position) {
-                        Toast.makeText(MainActivity.this, mAdapter.getItem(position).name, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, mAdapter.getItemByAdapterPosition(position).name,
+                                Toast.LENGTH_SHORT).show();
                     }
                 })
                 .withSelectMode(R.id.check_box, new MultipleSelectMode(
@@ -123,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
             mAdapter.addItem(Item.create("New Text " + (mAdapter.getItemCount() + 1), "description here"));
             return true;
         } else if (id == R.id.action_remove) {
-            mAdapter.removeItemAtPosition(0);
+            mAdapter.removeItem(mAdapter.getItem(0));
             return true;
         }
 

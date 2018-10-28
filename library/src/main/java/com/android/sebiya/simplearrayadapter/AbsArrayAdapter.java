@@ -103,7 +103,7 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
             onBindHeaderViewHolder(vh, mHeaderTypes.get(position));
             return;
         }
-        T item = getItem(position);
+        T item = getItemByAdapterPosition(position);
         onBindViewHolder(vh, position, item);
         onBindCheckBoxViewHolder(vh, position, item);
         if (this.mBinders.size() > 0) {
@@ -157,7 +157,7 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
         if (isHeader(position)) {
             return mHeaderTypes.get(position);
         }
-        return (long) getItem(position).hashCode();
+        return (long) getItemByAdapterPosition(position).hashCode();
     }
 
     public int getItemViewType(int position) {
@@ -227,17 +227,17 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
         notifyDataSetChanged();
     }
 
-    public void addItem(@NonNull T t) {
-        this.mItems.add(t);
+    public void addItem(@NonNull T item) {
+        this.mItems.add(item);
         notifyItemInserted(getItemCount() - 1);
     }
 
-    public void removeItem(@NonNull T t) {
-        int indexOf = this.mItems.indexOf(t);
-        if (indexOf >= 0) {
-            int realPos = convertToRealPos(indexOf);
-            this.mItems.remove(t);
-            notifyItemRemoved(realPos);
+    public void removeItem(T item) {
+        if (item == null) {
+            return;
+        }
+        if (mItems.remove(item)) {
+            notifyDataSetChanged();
         }
     }
 
@@ -258,7 +258,7 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
         List<T> removeCandidate = new ArrayList<>();
         for (int index = 0; index < getItemCount(); index++) {
             if (itemIdList.contains(getItemId(index))) {
-                removeCandidate.add(getItem(index));
+                removeCandidate.add(getItemByAdapterPosition(index));
             }
         }
         if (!removeCandidate.isEmpty()) {
@@ -275,12 +275,19 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
         return new ArrayList<>(this.mItems);
     }
 
-    public T getItem(int i) {
-        return this.mItems.get(convertToRealPos(i));
+    public T getItemByAdapterPosition(int adapterPosition) {
+        return this.mItems.get(convertToRealPos(adapterPosition));
     }
 
-    public boolean contains(T t) {
-        return this.mItems.contains(t);
+    public T getItem(int i) {
+        if (i < 0 || i >= mItems.size() || mItems.isEmpty()) {
+            return null;
+        }
+        return mItems.get(i);
+    }
+
+    public boolean contains(T item) {
+        return this.mItems.contains(item);
     }
 
     public int getItemCount() {
@@ -297,6 +304,12 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
         return this.mItems.size() + i2;
     }
 
+    /**
+     * return item count except header type view.
+     */
+    public int getRealItemCount() {
+        return mItems.size();
+    }
 
     @Override
     public void clearItems() {
