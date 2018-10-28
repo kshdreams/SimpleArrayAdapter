@@ -20,11 +20,9 @@ import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
 import android.view.ViewGroup;
 import android.widget.Checkable;
-
 import com.android.sebiya.simplearrayadapter.selectmode.AbsSelectMode;
 import com.android.sebiya.simplearrayadapter.selectmode.SelectMode;
 import com.android.sebiya.simplearrayadapter.utils.CollectionsUtils;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -127,22 +125,26 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
     }
 
     protected void onBindCheckBoxViewHolder(@NonNull VH vh, int position, T item) {
-        if (vh.checkBox == null && this.mCheckBoxIdRes != 0) {
-            vh.checkBox = vh.itemView.findViewById(this.mCheckBoxIdRes);
+        View checkBox = null;
+        if (this.mCheckBoxIdRes != 0) {
+            checkBox = vh.itemView.findViewById(this.mCheckBoxIdRes);
         }
-        if (vh.checkBox == null) {
+        if (checkBox == null) {
             return;
         }
         if (isSelectMode()) {
-            vh.checkBox.setVisibility(View.VISIBLE);
-            vh.checkBox.setClickable(false);
-            if (vh.checkBox instanceof Checkable) {
-                ((Checkable) vh.checkBox).setChecked(this.mSelectMode.isSelected(getItemId(position)));
+            checkBox.setVisibility(View.VISIBLE);
+            checkBox.setClickable(false);
+            if (checkBox instanceof Checkable) {
+                ((Checkable) checkBox).setChecked(this.mSelectMode.isSelected(getItemId(position)));
                 return;
             }
             return;
         }
-        vh.checkBox.setVisibility(View.GONE);
+        checkBox.setVisibility(View.GONE);
+        if (checkBox instanceof Checkable) {
+            ((Checkable) checkBox).setChecked(false);
+        }
     }
 
 
@@ -404,12 +406,8 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
     }
 
     public static class ViewHolderInternal extends ViewHolder {
-
-        View checkBox;
-
         public ViewHolderInternal(View view, AbsArrayAdapter absArrayAdapter) {
             super(view);
-            this.checkBox = view.findViewById(R.id.checkbox);
             initClickListener(absArrayAdapter);
         }
 
@@ -431,6 +429,9 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
             if (absArrayAdapter.mSelectMode != null) {
                 this.itemView.setOnLongClickListener(new OnLongClickListener() {
                     public boolean onLongClick(View view) {
+                        if (absArrayAdapter.isSelectMode()) {
+                            return false;
+                        }
                         return absArrayAdapter
                                 .dispatchLongClickEvent(view, ViewHolderInternal.this.getAdapterPosition());
                     }

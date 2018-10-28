@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="?android:attr/selectableItemBackground"
     android:padding="10dp">
 
     <CheckBox
@@ -12,6 +13,8 @@
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
         android:layout_marginRight="10dp"
+        android:clickable="false"
+        android:focusable="false"
         android:visibility="gone"
         tools:visibility="visible"/>
 

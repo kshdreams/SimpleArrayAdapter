@@ -13,7 +13,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.android.sebiya.simplearrayadapter.AbsArrayAdapter;
 import com.android.sebiya.simplearrayadapter.SimpleArrayAdapter;
 import com.android.sebiya.simplearrayadapter.selectmode.MultipleSelectMode;
@@ -21,7 +20,18 @@ import com.android.sebiya.simplearrayadapter.selectmode.SelectModeCallback;
 
 public class MainActivity extends AppCompatActivity {
 
-    private SimpleArrayAdapter<String> mAdapter;
+    public static class Item {
+        String name;
+        String desc;
+        public static Item create(String name, String desc) {
+            Item item = new Item();
+            item.name = name;
+            item.desc = desc;
+            return item;
+        }
+    }
+
+    private SimpleArrayAdapter<Item> mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,18 +41,24 @@ public class MainActivity extends AppCompatActivity {
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
         setSupportActionBar(toolbar);
 
-        mAdapter = SimpleArrayAdapter.<String>with(this)
+        mAdapter = SimpleArrayAdapter.<Item>with(this)
                 .setLayoutResId(R.layout.list_item_2_line)
-                .addViewBinder(R.id.text1, new AbsArrayAdapter.AbsViewBinder<String, TextView>() {
+                .addViewBinder(R.id.text1, new AbsArrayAdapter.AbsViewBinder<Item, TextView>() {
                     @Override
-                    protected void bindView(TextView textView, String s) {
-                        textView.setText(s);
+                    protected void bindView(TextView textView, Item item) {
+                        textView.setText(item.name);
+                    }
+                })
+                .addViewBinder(R.id.text2, new AbsArrayAdapter.AbsViewBinder<Item, TextView>() {
+                    @Override
+                    protected void bindView(final TextView textView, final Item item) {
+                        textView.setText(item.desc);
                     }
                 })
                 .withItemClickListener(new AbsArrayAdapter.OnItemClickListener() {
                     @Override
-                    public void onItemClick(View view, int i) {
-                        Toast.makeText(MainActivity.this, mAdapter.getItem(i), Toast.LENGTH_SHORT).show();
+                    public void onItemClick(View view, int position) {
+                        Toast.makeText(MainActivity.this, mAdapter.getItem(position).name, Toast.LENGTH_SHORT).show();
                     }
                 })
                 .withSelectMode(R.id.check_box, new MultipleSelectMode(
@@ -63,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
                 .build();
 
         for (int index = 1; index <= 4; index++) {
-            mAdapter.addItem("Text " + index);
+            mAdapter.addItem(Item.create("Text " + index, "description here"));
         }
 
         recyclerView.setAdapter(mAdapter);
@@ -95,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_add) {
-            mAdapter.addItem("New Text " + (mAdapter.getItemCount() + 1));
+            mAdapter.addItem(Item.create("New Text " + (mAdapter.getItemCount() + 1), "description here"));
             return true;
         } else if (id == R.id.action_remove) {
             mAdapter.removeItemAtPosition(0);
