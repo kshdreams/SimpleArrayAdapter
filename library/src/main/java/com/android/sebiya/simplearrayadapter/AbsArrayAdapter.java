@@ -229,21 +229,24 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
 
     public void addItem(@NonNull T t) {
         this.mItems.add(t);
-        notifyItemInserted(mItems.size() - 1);
+        notifyItemInserted(getItemCount() - 1);
     }
 
     public void removeItem(@NonNull T t) {
         int indexOf = this.mItems.indexOf(t);
         if (indexOf >= 0) {
+            int realPos = convertToRealPos(indexOf);
             this.mItems.remove(t);
-            notifyItemRemoved(indexOf);
+            notifyItemRemoved(realPos);
         }
     }
 
     public void removeItemAtPosition(@IntRange(from = 0) int position) {
         if (position < mItems.size()) {
             this.mItems.remove(position);
-            notifyItemRemoved(position);
+            notifyDataSetChanged();
+            // TODO : find real position and notify specific view only for performance
+//            notifyItemRemoved(position);
         }
     }
 
@@ -415,6 +418,9 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
             if (absArrayAdapter.mOnItemClickListener != null) {
                 this.itemView.setOnClickListener(new OnClickListener() {
                     public void onClick(View view) {
+                        if (absArrayAdapter.isHeader(ViewHolderInternal.this.getAdapterPosition())) {
+                            return;
+                        }
                         if (absArrayAdapter.isSelectMode()) {
                             absArrayAdapter.mSelectMode.toggleSelect(
                                     absArrayAdapter.getItemId(ViewHolderInternal.this.getAdapterPosition()));
@@ -429,6 +435,9 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
             if (absArrayAdapter.mSelectMode != null) {
                 this.itemView.setOnLongClickListener(new OnLongClickListener() {
                     public boolean onLongClick(View view) {
+                        if (absArrayAdapter.isHeader(ViewHolderInternal.this.getAdapterPosition())) {
+                            return false;
+                        }
                         if (absArrayAdapter.isSelectMode()) {
                             return false;
                         }
@@ -441,6 +450,9 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
                     this.itemView.setOnLongClickListener(new OnLongClickListener() {
                         @Override
                         public boolean onLongClick(View v) {
+                            if (absArrayAdapter.isHeader(ViewHolderInternal.this.getAdapterPosition())) {
+                                return false;
+                            }
                             return absArrayAdapter.mOnItemLongClickListener
                                     .onItemLongClick(v, ViewHolderInternal.this.getAdapterPosition());
                         }

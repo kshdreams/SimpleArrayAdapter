@@ -20,6 +20,9 @@ import com.android.sebiya.simplearrayadapter.selectmode.SelectModeCallback;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final int HEADER_TYPE_1 = 1;
+    private static final int HEADER_TYPE_2 = 2;
+
     public static class Item {
         String name;
         String desc;
@@ -81,6 +84,12 @@ public class MainActivity extends AppCompatActivity {
         for (int index = 1; index <= 4; index++) {
             mAdapter.addItem(Item.create("Text " + index, "description here"));
         }
+
+        View header = View.inflate(this, R.layout.view_header, null);
+        mAdapter.addHeaderView(0, HEADER_TYPE_1, header);
+
+        View header2 = View.inflate(this, R.layout.view_header_2, null);
+        mAdapter.addHeaderView(7, HEADER_TYPE_2, header2);
 
         recyclerView.setAdapter(mAdapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
