@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.List;
 
 public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderInternal> extends Adapter<VH>
-        implements SelectMode {
+        implements SelectMode, SpanSize {
 
     private static final boolean DEBUG = BuildConfig.DEBUG;
 
@@ -60,7 +60,9 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
 
     private final AbsSelectMode mSelectMode;
 
-    AbsArrayAdapter(Builder<T, ? extends Builder> builder) {
+    private final SpanSize mSpanSize;
+
+    public AbsArrayAdapter(Builder<T, ? extends Builder> builder) {
         this.mActivity = builder.activity;
         this.mOnItemClickListener = builder.itemClickListener;
         this.mLayoutRes = builder.layoutRes;
@@ -68,6 +70,7 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
         this.mSelectMode = builder.selectMode;
         this.mCheckBoxIdRes = builder.checkBoxId;
         this.mOnItemLongClickListener = builder.itemLongClickListener;
+        this.mSpanSize = builder.spanSize;
         setHasStableIds(true);
     }
 
@@ -178,6 +181,11 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
 
     public boolean isHeader(int i) {
         return this.mHeaderTypes.get(i) != null;
+    }
+
+    @Override
+    public int getSpanSize(final Adapter adapter, final int position, final int layoutSpanSize) {
+        return this.mSpanSize != null ? this.mSpanSize.getSpanSize(this, position, layoutSpanSize) : 1;
     }
 
     private boolean dispatchLongClickEvent(View view, final int i) {
@@ -362,6 +370,8 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
 
         private OnItemLongClickListener itemLongClickListener;
 
+        private SpanSize spanSize;
+
         public abstract AbsArrayAdapter build();
 
         protected abstract B self();
@@ -370,8 +380,8 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
             this.activity = activity;
         }
 
-        public B addViewBinder(@IdRes int i, ViewBinder<T> viewBinder) {
-            this.binders.put(i, viewBinder);
+        public B addViewBinder(@IdRes int viewId, ViewBinder<T> viewBinder) {
+            this.binders.put(viewId, viewBinder);
             return self();
         }
 
@@ -385,14 +395,19 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
             return self();
         }
 
-        public B setLayoutResId(@LayoutRes int i) {
-            this.layoutRes = i;
+        public B setLayoutResId(@LayoutRes int layoutRes) {
+            this.layoutRes = layoutRes;
             return self();
         }
 
-        public B withSelectMode(@IdRes int i, AbsSelectMode absSelectMode) {
+        public B withSelectMode(@IdRes int checkBoxId, AbsSelectMode absSelectMode) {
             this.selectMode = absSelectMode;
-            this.checkBoxId = i;
+            this.checkBoxId = checkBoxId;
+            return self();
+        }
+
+        public B withSpanSize(SpanSize spanSize) {
+            this.spanSize = spanSize;
             return self();
         }
     }
@@ -417,7 +432,9 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
         protected abstract void bindView(V v, T item);
 
         public final void bind(View view, T item) {
-            bindView((V) view, item);
+            if (view != null) {
+                bindView((V) view, item);
+            }
         }
     }
 

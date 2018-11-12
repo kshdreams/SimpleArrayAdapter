@@ -4,8 +4,10 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.GridLayoutManager.SpanSizeLookup;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.RecyclerView.Adapter;
 import android.support.v7.widget.Toolbar;
 import android.view.ActionMode;
 import android.view.Menu;
@@ -15,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.android.sebiya.simplearrayadapter.AbsArrayAdapter;
 import com.android.sebiya.simplearrayadapter.SimpleArrayAdapter;
+import com.android.sebiya.simplearrayadapter.SpanSize;
 import com.android.sebiya.simplearrayadapter.selectmode.MultipleSelectMode;
 import com.android.sebiya.simplearrayadapter.selectmode.SelectModeCallback;
 
@@ -45,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         mAdapter = SimpleArrayAdapter.<Item>with(this)
-                .setLayoutResId(R.layout.list_item_2_line)
+                .setLayoutResId(R.layout.grid_item_2_line)
                 .addViewBinder(R.id.text1, new AbsArrayAdapter.AbsViewBinder<Item, TextView>() {
                     @Override
                     protected void bindView(TextView textView, Item item) {
@@ -54,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .addViewBinder(R.id.text2, new AbsArrayAdapter.AbsViewBinder<Item, TextView>() {
                     @Override
-                    protected void bindView(final TextView textView, final Item item) {
+                    protected void bindView(TextView textView, Item item) {
                         textView.setText(item.desc);
                     }
                 })
@@ -80,6 +83,15 @@ public class MainActivity extends AppCompatActivity {
                                 return false;
                             }
                         }))
+                .withSpanSize(new SpanSize() {
+                    @Override
+                    public int getSpanSize(final Adapter adapter, final int position, final int layoutSpanSize) {
+                        if (adapter instanceof AbsArrayAdapter) {
+                            return ((AbsArrayAdapter) adapter).isHeader(position) ? layoutSpanSize : 1;
+                        }
+                        return 1;
+                    }
+                })
                 .build();
 
         for (int index = 1; index <= 4; index++) {
@@ -92,8 +104,15 @@ public class MainActivity extends AppCompatActivity {
         View header2 = View.inflate(this, R.layout.view_header_2, null);
         mAdapter.addHeaderView(7, HEADER_TYPE_2, header2);
 
+        final GridLayoutManager layoutManager = new GridLayoutManager(this, 3);
+        layoutManager.setSpanSizeLookup(new SpanSizeLookup() {
+            @Override
+            public int getSpanSize(final int position) {
+                return mAdapter.getSpanSize(mAdapter, position, layoutManager.getSpanCount());
+            }
+        });
         recyclerView.setAdapter(mAdapter);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setLayoutManager(layoutManager);
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -121,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_add) {
-            mAdapter.addItem(Item.create("New Text " + (mAdapter.getItemCount() + 1), "description here"));
+            mAdapter.addItem(Item.create("New Text " + (mAdapter.getItemCount()), "description here"));
             return true;
         } else if (id == R.id.action_remove) {
             mAdapter.removeItem(mAdapter.getItem(0));
