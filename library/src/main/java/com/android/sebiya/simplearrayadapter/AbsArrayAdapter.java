@@ -10,6 +10,7 @@ import android.support.v7.widget.RecyclerView.Adapter;
 import android.support.v7.widget.RecyclerView.ViewHolder;
 import android.util.Log;
 import android.util.SparseArray;
+import android.util.SparseIntArray;
 import android.view.ActionMode;
 import android.view.ActionMode.Callback;
 import android.view.LayoutInflater;
@@ -30,6 +31,8 @@ import java.util.List;
 public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderInternal> extends Adapter<VH>
         implements SelectMode, SpanSize {
 
+    private static final String TAG = "AbsArrayAdapter";
+
     private static final boolean DEBUG = BuildConfig.DEBUG;
 
     protected abstract VH onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType, View view);
@@ -39,13 +42,16 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
     protected final Activity mActivity;
 
     private final SparseArray<ViewBinder<T>> mBinders;
+    private SparseArray<HeaderViewListener> mHeaderBinders = new SparseArray<>();
 
     @IdRes
     private final int mCheckBoxIdRes;
 
-    private SparseArray<Integer> mHeaderTypes = new SparseArray<>();
+    private SparseIntArray mHeaderTypes = new SparseIntArray();
 
     private SparseArray<View> mHeaderViews = new SparseArray<>();
+
+    private SparseIntArray mHeaderViewRes = new SparseIntArray();
 
     private List<T> mItems = new ArrayList<>();
 
@@ -63,56 +69,79 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
     private final SpanSize mSpanSize;
 
     public AbsArrayAdapter(Builder<T, ? extends Builder> builder) {
-        this.mActivity = builder.activity;
-        this.mOnItemClickListener = builder.itemClickListener;
-        this.mLayoutRes = builder.layoutRes;
-        this.mBinders = builder.binders;
-        this.mSelectMode = builder.selectMode;
-        this.mCheckBoxIdRes = builder.checkBoxId;
-        this.mOnItemLongClickListener = builder.itemLongClickListener;
-        this.mSpanSize = builder.spanSize;
+        mActivity = builder.activity;
+        mOnItemClickListener = builder.itemClickListener;
+        mLayoutRes = builder.layoutRes;
+        mBinders = builder.binders;
+        mSelectMode = builder.selectMode;
+        mCheckBoxIdRes = builder.checkBoxId;
+        mOnItemLongClickListener = builder.itemLongClickListener;
+        mSpanSize = builder.spanSize;
         setHasStableIds(true);
     }
 
     public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
         super.onAttachedToRecyclerView(recyclerView);
-        this.mRecyclerView = recyclerView;
+        mRecyclerView = recyclerView;
     }
 
     public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
         super.onDetachedFromRecyclerView(recyclerView);
-        this.mRecyclerView = null;
+        mRecyclerView = null;
     }
 
     @NonNull
     public final VH onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
-        View view = this.mHeaderViews.get(viewType);
+        View view = mHeaderViews.get(viewType);
+        if (DEBUG) {
+            Log.d(TAG, "onCreateViewHolder. type - " + viewType);
+        }
+
+        if (view == null && mHeaderViewRes.indexOfKey(viewType) >= 0) {
+            view = LayoutInflater.from(viewGroup.getContext())
+                    .inflate(mHeaderViewRes.get(viewType), viewGroup, false);
+            if (mHeaderBinders.size() > 0) {
+                HeaderViewListener headerBinder = mHeaderBinders.get(viewType);
+                if (headerBinder != null) {
+                    headerBinder.onCreateHeaderView(view, viewType);
+                }
+            }
+        }
         if (view == null) {
-            view = LayoutInflater.from(viewGroup.getContext()).inflate(this.mLayoutRes, viewGroup, false);
+            view = LayoutInflater.from(viewGroup.getContext()).inflate(mLayoutRes, viewGroup, false);
         }
         return onCreateViewHolder(viewGroup, viewType, view);
     }
 
     public final void onBindViewHolder(@NonNull VH vh, int position) {
         if (DEBUG) {
-            String simpleName = getClass().getSimpleName();
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("onBindViewHolder. pos - ");
-            stringBuilder.append(position);
-            Log.d(simpleName, stringBuilder.toString());
+            final String message = "onBindViewHolder. pos - " +
+                    position +
+                    ", type - " + getItemViewType(position);
+            Log.d(TAG, message);
         }
 
         if (isHeader(position)) {
             onBindHeaderViewHolder(vh, mHeaderTypes.get(position));
+            if (mHeaderBinders.size() > 0) {
+                int type = getItemViewType(position);
+                HeaderViewListener headerBinder = mHeaderBinders.get(type);
+                if (DEBUG) {
+                    Log.d(TAG, "onBindViewHolder. header type - " + type + ", binder - " + headerBinder);
+                }
+                if (headerBinder != null) {
+                    headerBinder.onBindHeaderView(vh.itemView, type);
+                }
+            }
             return;
         }
         T item = getItemByAdapterPosition(position);
         onBindViewHolder(vh, position, item);
         onBindCheckBoxViewHolder(vh, position, item);
-        if (this.mBinders.size() > 0) {
-            for (int index = 0; index < this.mBinders.size(); index++) {
-                int keyAt = this.mBinders.keyAt(index);
-                ViewBinder viewBinder = this.mBinders.get(keyAt);
+        if (mBinders.size() > 0) {
+            for (int index = 0; index < mBinders.size(); index++) {
+                int keyAt = mBinders.keyAt(index);
+                ViewBinder viewBinder = mBinders.get(keyAt);
                 if (viewBinder != null) {
                     viewBinder.bind(vh.itemView.findViewById(keyAt), item);
                 }
@@ -129,8 +158,8 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
 
     protected void onBindCheckBoxViewHolder(@NonNull VH vh, int position, T item) {
         View checkBox = null;
-        if (this.mCheckBoxIdRes != 0) {
-            checkBox = vh.itemView.findViewById(this.mCheckBoxIdRes);
+        if (mCheckBoxIdRes != 0) {
+            checkBox = vh.itemView.findViewById(mCheckBoxIdRes);
         }
         if (checkBox == null) {
             return;
@@ -139,7 +168,7 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
             checkBox.setVisibility(View.VISIBLE);
             checkBox.setClickable(false);
             if (checkBox instanceof Checkable) {
-                ((Checkable) checkBox).setChecked(this.mSelectMode.isSelected(getItemId(position)));
+                ((Checkable) checkBox).setChecked(mSelectMode.isSelected(getItemId(position)));
                 return;
             }
             return;
@@ -150,10 +179,15 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
         }
     }
 
+    public void addHeaderView(int position, int type, @LayoutRes int viewRes, HeaderViewListener binder) {
+        mHeaderTypes.put(position, type);
+        mHeaderViewRes.put(type, viewRes);
+        mHeaderBinders.put(type, binder);
+    }
 
     public void addHeaderView(int position, int type, @NonNull View view) {
-        this.mHeaderTypes.put(position, type);
-        this.mHeaderViews.put(type, view);
+        mHeaderTypes.put(position, type);
+        mHeaderViews.put(type, view);
     }
 
     public long getItemId(int position) {
@@ -171,8 +205,8 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
     }
 
     private int convertToRealPos(int i) {
-        for (int i2 = 0; i2 < this.mHeaderTypes.size(); i2++) {
-            if (this.mHeaderTypes.keyAt(i2) <= i) {
+        for (int i2 = 0; i2 < mHeaderTypes.size(); i2++) {
+            if (mHeaderTypes.keyAt(i2) <= i) {
                 i--;
             }
         }
@@ -180,63 +214,63 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
     }
 
     public boolean isHeader(int i) {
-        return this.mHeaderTypes.get(i) != null;
+        return mHeaderTypes.indexOfKey(i) >= 0;
     }
 
     @Override
     public int getSpanSize(final Adapter adapter, final int position, final int layoutSpanSize) {
-        return this.mSpanSize != null ? this.mSpanSize.getSpanSize(this, position, layoutSpanSize) : 1;
+        return mSpanSize != null ? mSpanSize.getSpanSize(this, position, layoutSpanSize) : 1;
     }
 
     private boolean dispatchLongClickEvent(View view, final int i) {
-        if (this.mRecyclerView == null) {
+        if (mRecyclerView == null) {
             return false;
         }
-        this.mRecyclerView.startActionMode(new Callback() {
+        mRecyclerView.startActionMode(new Callback() {
             public boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
-                AbsArrayAdapter.this.mActionMode = actionMode;
-                boolean onCreateActionMode = AbsArrayAdapter.this.mSelectMode.getActionModeCallback()
+                mActionMode = actionMode;
+                boolean onCreateActionMode = mSelectMode.getActionModeCallback()
                         .onCreateActionMode(actionMode, menu);
-                AbsArrayAdapter.this.mSelectMode.toggleSelect(AbsArrayAdapter.this.getItemId(i));
-                AbsArrayAdapter.this.notifyDataSetChanged();
+                mSelectMode.toggleSelect(getItemId(i));
+                notifyDataSetChanged();
                 return onCreateActionMode;
             }
 
             public boolean onPrepareActionMode(ActionMode actionMode, Menu menu) {
-                return AbsArrayAdapter.this.mSelectMode.getActionModeCallback().onPrepareActionMode(actionMode, menu);
+                return mSelectMode.getActionModeCallback().onPrepareActionMode(actionMode, menu);
             }
 
             public boolean onActionItemClicked(ActionMode actionMode, MenuItem menuItem) {
-                boolean onActionItemClicked = AbsArrayAdapter.this.mSelectMode.getActionModeCallback()
+                boolean onActionItemClicked = mSelectMode.getActionModeCallback()
                         .onActionItemClicked(actionMode, menuItem);
                 actionMode.finish();
                 return onActionItemClicked;
             }
 
             public void onDestroyActionMode(ActionMode actionMode) {
-                AbsArrayAdapter.this.mSelectMode.getActionModeCallback().onDestroyActionMode(actionMode);
-                AbsArrayAdapter.this.mSelectMode.clearItems();
-                AbsArrayAdapter.this.mActionMode = null;
-                AbsArrayAdapter.this.notifyDataSetChanged();
+                mSelectMode.getActionModeCallback().onDestroyActionMode(actionMode);
+                mSelectMode.clearItems();
+                mActionMode = null;
+                notifyDataSetChanged();
             }
         });
         return true;
     }
 
     public boolean isSelectMode() {
-        return this.mActionMode != null;
+        return mActionMode != null;
     }
 
     public void swapArray(List<T> list) {
-        this.mItems.clear();
+        mItems.clear();
         if (list != null) {
-            this.mItems.addAll(list);
+            mItems.addAll(list);
         }
         notifyDataSetChanged();
     }
 
     public void addItem(@NonNull T item) {
-        this.mItems.add(item);
+        mItems.add(item);
         notifyItemInserted(getItemCount() - 1);
     }
 
@@ -251,7 +285,7 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
 
     public void removeItemAtPosition(@IntRange(from = 0) int position) {
         if (position < mItems.size()) {
-            this.mItems.remove(position);
+            mItems.remove(position);
             notifyDataSetChanged();
             // TODO : find real position and notify specific view only for performance
 //            notifyItemRemoved(position);
@@ -280,11 +314,11 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
     }
 
     public List<T> getItems() {
-        return new ArrayList<>(this.mItems);
+        return new ArrayList<>(mItems);
     }
 
     public T getItemByAdapterPosition(int adapterPosition) {
-        return this.mItems.get(convertToRealPos(adapterPosition));
+        return mItems.get(convertToRealPos(adapterPosition));
     }
 
     public T getItem(int i) {
@@ -295,21 +329,21 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
     }
 
     public boolean contains(T item) {
-        return this.mItems.contains(item);
+        return mItems.contains(item);
     }
 
     public int getItemCount() {
-        int size = this.mItems.size();
+        int size = mItems.size();
         int i = 0;
         int i2 = 0;
-        while (i < this.mHeaderTypes.size()) {
-            if (this.mHeaderTypes.keyAt(i) <= size) {
+        while (i < mHeaderTypes.size()) {
+            if (mHeaderTypes.keyAt(i) <= size) {
                 i2++;
                 size++;
             }
             i++;
         }
-        return this.mItems.size() + i2;
+        return mItems.size() + i2;
     }
 
     /**
@@ -381,17 +415,17 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
         }
 
         public B addViewBinder(@IdRes int viewId, ViewBinder<T> viewBinder) {
-            this.binders.put(viewId, viewBinder);
+            binders.put(viewId, viewBinder);
             return self();
         }
 
         public B withItemClickListener(OnItemClickListener listener) {
-            this.itemClickListener = listener;
+            itemClickListener = listener;
             return self();
         }
 
         public B withItemLongClickListener(OnItemLongClickListener listener) {
-            this.itemLongClickListener = listener;
+            itemLongClickListener = listener;
             return self();
         }
 
@@ -401,7 +435,7 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
         }
 
         public B withSelectMode(@IdRes int checkBoxId, AbsSelectMode absSelectMode) {
-            this.selectMode = absSelectMode;
+            selectMode = absSelectMode;
             this.checkBoxId = checkBoxId;
             return self();
         }
@@ -423,8 +457,12 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
     }
 
     public interface ViewBinder<T> {
-
         void bind(View view, T item);
+    }
+
+    public interface HeaderViewListener {
+        void onCreateHeaderView(View view, int type);
+        void onBindHeaderView(View view, int type);
     }
 
     public static abstract class AbsViewBinder<T, V extends View> implements ViewBinder<T> {
@@ -446,45 +484,45 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
 
         protected void initClickListener(final AbsArrayAdapter absArrayAdapter) {
             if (absArrayAdapter.mOnItemClickListener != null) {
-                this.itemView.setOnClickListener(new OnClickListener() {
+                itemView.setOnClickListener(new OnClickListener() {
                     public void onClick(View view) {
-                        if (absArrayAdapter.isHeader(ViewHolderInternal.this.getAdapterPosition())) {
+                        if (absArrayAdapter.isHeader(getAdapterPosition())) {
                             return;
                         }
                         if (absArrayAdapter.isSelectMode()) {
                             absArrayAdapter.mSelectMode.toggleSelect(
-                                    absArrayAdapter.getItemId(ViewHolderInternal.this.getAdapterPosition()));
-                            absArrayAdapter.notifyItemChanged(ViewHolderInternal.this.getAdapterPosition());
+                                    absArrayAdapter.getItemId(getAdapterPosition()));
+                            absArrayAdapter.notifyItemChanged(getAdapterPosition());
                             return;
                         }
                         absArrayAdapter.mOnItemClickListener
-                                .onItemClick(view, ViewHolderInternal.this.getAdapterPosition());
+                                .onItemClick(view, getAdapterPosition());
                     }
                 });
             }
             if (absArrayAdapter.mSelectMode != null) {
-                this.itemView.setOnLongClickListener(new OnLongClickListener() {
+                itemView.setOnLongClickListener(new OnLongClickListener() {
                     public boolean onLongClick(View view) {
-                        if (absArrayAdapter.isHeader(ViewHolderInternal.this.getAdapterPosition())) {
+                        if (absArrayAdapter.isHeader(getAdapterPosition())) {
                             return false;
                         }
                         if (absArrayAdapter.isSelectMode()) {
                             return false;
                         }
                         return absArrayAdapter
-                                .dispatchLongClickEvent(view, ViewHolderInternal.this.getAdapterPosition());
+                                .dispatchLongClickEvent(view, getAdapterPosition());
                     }
                 });
             } else {
                 if (absArrayAdapter.mOnItemLongClickListener != null) {
-                    this.itemView.setOnLongClickListener(new OnLongClickListener() {
+                    itemView.setOnLongClickListener(new OnLongClickListener() {
                         @Override
                         public boolean onLongClick(View v) {
-                            if (absArrayAdapter.isHeader(ViewHolderInternal.this.getAdapterPosition())) {
+                            if (absArrayAdapter.isHeader(getAdapterPosition())) {
                                 return false;
                             }
                             return absArrayAdapter.mOnItemLongClickListener
-                                    .onItemLongClick(v, ViewHolderInternal.this.getAdapterPosition());
+                                    .onItemLongClick(v, getAdapterPosition());
                         }
                     });
                 }

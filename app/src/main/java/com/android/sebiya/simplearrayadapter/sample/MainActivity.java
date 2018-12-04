@@ -9,6 +9,7 @@ import android.support.v7.widget.GridLayoutManager.SpanSizeLookup;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.Adapter;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -16,12 +17,15 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.android.sebiya.simplearrayadapter.AbsArrayAdapter;
+import com.android.sebiya.simplearrayadapter.AbsArrayAdapter.HeaderViewListener;
 import com.android.sebiya.simplearrayadapter.SimpleArrayAdapter;
 import com.android.sebiya.simplearrayadapter.SpanSize;
 import com.android.sebiya.simplearrayadapter.selectmode.MultipleSelectMode;
 import com.android.sebiya.simplearrayadapter.selectmode.SelectModeCallback;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final String LOG_TAG = "MainActivity";
 
     private static final int HEADER_TYPE_1 = 1;
     private static final int HEADER_TYPE_2 = 2;
@@ -98,8 +102,17 @@ public class MainActivity extends AppCompatActivity {
             mAdapter.addItem(Item.create("Text " + index, "description here"));
         }
 
-        View header = View.inflate(this, R.layout.view_header, null);
-        mAdapter.addHeaderView(0, HEADER_TYPE_1, header);
+        mAdapter.addHeaderView(0, HEADER_TYPE_1, R.layout.view_header, new HeaderViewListener() {
+            @Override
+            public void onCreateHeaderView(final View view, final int type) {
+                Log.d(LOG_TAG, "onCreateHeaderView. type - " + type);
+            }
+
+            @Override
+            public void onBindHeaderView(final View view, final int type) {
+                Log.d(LOG_TAG, "onBindHeaderView. type - " + type);
+            }
+        });
 
         View header2 = View.inflate(this, R.layout.view_header_2, null);
         mAdapter.addHeaderView(7, HEADER_TYPE_2, header2);
