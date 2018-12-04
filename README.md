@@ -101,8 +101,22 @@ add item using ```addItem()``` or ```swapArray()```
 
 ##### 5. Using different type of view
 ```java
-        View header = View.inflate(this, R.layout.view_header, null);
-        adapter.addHeaderView(0, HEADER_TYPE_1, header);
+        // create view on demand
+        mAdapter.addHeaderView(0, HEADER_TYPE_1, R.layout.view_header, new HeaderViewListener() {
+            @Override
+            public void onCreateHeaderView(View view, int type) {
+                // do something on create
+            }
+
+            @Override
+            public void onBindHeaderView(View view, int type) {
+                // do something on bind
+            }
+        });
+
+        // create view immediately
+        View header = View.inflate(this, R.layout.view_header_2, null);
+        adapter.addHeaderView(0, HEADER_TYPE_2, header);
 ```
 
 
