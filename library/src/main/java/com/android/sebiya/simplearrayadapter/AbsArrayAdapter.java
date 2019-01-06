@@ -190,6 +190,17 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
         mHeaderViews.put(type, view);
     }
 
+    public void removeHeaderViewByType(int type) {
+        mHeaderViews.delete(type);
+        mHeaderBinders.delete(type);
+        mHeaderViewRes.delete(type);
+        int indexOfValue = mHeaderTypes.indexOfValue(type);
+        if (indexOfValue >= 0) {
+            mHeaderTypes.removeAt(indexOfValue);
+        }
+        notifyDataSetChanged();
+    }
+
     public long getItemId(int position) {
         if (isHeader(position)) {
             return mHeaderTypes.get(position);
@@ -267,6 +278,13 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
             mItems.addAll(list);
         }
         notifyDataSetChanged();
+    }
+
+    public void addAll(Collection<T> collection) {
+        if (collection != null) {
+            mItems.addAll(collection);
+            notifyDataSetChanged();
+        }
     }
 
     public void addItem(@NonNull T item) {

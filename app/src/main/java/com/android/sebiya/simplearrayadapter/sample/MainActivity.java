@@ -104,12 +104,12 @@ public class MainActivity extends AppCompatActivity {
 
         mAdapter.addHeaderView(0, HEADER_TYPE_1, R.layout.view_header, new HeaderViewListener() {
             @Override
-            public void onCreateHeaderView(final View view, final int type) {
+            public void onCreateHeaderView(View view, int type) {
                 Log.d(LOG_TAG, "onCreateHeaderView. type - " + type);
             }
 
             @Override
-            public void onBindHeaderView(final View view, final int type) {
+            public void onBindHeaderView(View view, int type) {
                 Log.d(LOG_TAG, "onBindHeaderView. type - " + type);
             }
         });
@@ -131,7 +131,8 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                mAdapter.removeHeaderViewByType(HEADER_TYPE_2);
+                Snackbar.make(view, "Header type 2 is removed", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
         });
