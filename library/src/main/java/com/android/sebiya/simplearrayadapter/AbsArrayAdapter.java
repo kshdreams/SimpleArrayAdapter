@@ -216,12 +216,13 @@ public abstract class AbsArrayAdapter<T, VH extends AbsArrayAdapter.ViewHolderIn
     }
 
     private int convertToRealPos(int i) {
+        int newPos = i;
         for (int i2 = 0; i2 < mHeaderTypes.size(); i2++) {
             if (mHeaderTypes.keyAt(i2) <= i) {
-                i--;
+                newPos--;
             }
         }
-        return i;
+        return newPos;
     }
 
     public boolean isHeader(int i) {
